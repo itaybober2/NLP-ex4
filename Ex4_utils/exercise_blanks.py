@@ -125,7 +125,9 @@ def get_one_hot(size, ind):
     :param ind: the entry index to turn to 1
     :return: numpy ndarray which represents the one-hot vector
     """
-    return
+    one_hot = np.zeros(size)
+    one_hot[ind] = 1
+    return one_hot
 
 
 def average_one_hots(sent, word_to_ind):
@@ -136,7 +138,19 @@ def average_one_hots(sent, word_to_ind):
     :param word_to_ind: a mapping between words to indices
     :return:
     """
-    return
+    one_hot_vectors = []
+    for word_node in sent.get_leaves():
+        word = word_node.text[0]  # Extract the word from the node
+        if word in word_to_ind:  # Only include words in the vocabulary
+            one_hot_vector = get_one_hot(len(word_to_ind), word_to_ind[word])
+            one_hot_vectors.append(one_hot_vector)
+
+    # Compute the average one-hot embedding
+    if one_hot_vectors:  # Avoid division by zero for empty sentences
+        avg_one_hot = np.mean(one_hot_vectors, axis=0)
+    else:
+        avg_one_hot = np.zeros(len(word_to_ind))  # Return a zero vector for empty sentences
+    return avg_one_hot
 
 
 def get_word_to_ind(words_list):
@@ -146,7 +160,7 @@ def get_word_to_ind(words_list):
     :param words_list: a list of words
     :return: the dictionary mapping words to the index
     """
-    return
+    return {word: idx for idx, word in enumerate(words_list)}
 
 
 def sentence_to_embedding(sent, word_to_vec, seq_len, embedding_dim=300):
@@ -286,14 +300,39 @@ class LogLinear(nn.Module):
     """
     general class for the log-linear models for sentiment analysis.
     """
+
     def __init__(self, embedding_dim):
-        return
+        """
+        Initialize the model.
+        :param embedding_dim: Dimension of the input embeddings (equal to the vocabulary size for one-hot embeddings).
+        """
+        super(LogLinear, self).__init__()
+        # Define a single linear layer
+        self.linear = nn.Linear(embedding_dim, 1)  # Maps input to a single output value for binary classification
+        # Define the sigmoid activation
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        return
+        """
+        Perform a forward pass through the model.
+        :param x: Input tensor of shape (batch_size, embedding_dim)
+        :return: Tensor of shape (batch_size, 1) representing probabilities
+        """
+        # Linear transformation
+        logits = self.linear(x)
+        # Sigmoid activation
+        probabilities = self.sigmoid(logits)
+        return probabilities
 
     def predict(self, x):
-        return
+        """
+        Perform predictions on the input.
+        :param x: Input tensor
+        :return: Binary predictions (0 or 1)
+        """
+        with torch.no_grad():
+            probabilities = self.forward(x)
+            return (probabilities >= 0.5).float()  # Convert probabilities to binary predictions
 
 
 # ------------------------- training functions -------------
