@@ -115,7 +115,16 @@ def get_w2v_average(sent, word_to_vec, embedding_dim):
     :param embedding_dim: the dimension of the word embedding vectors
     :return The average embedding vector as numpy ndarray.
     """
-    return
+    embeddings = []
+    for word_node in sent.get_leaves():
+        word = word_node.text[0]
+        if word in word_to_vec:
+            embeddings.append(word_to_vec[word])
+
+    if embeddings:
+        return np.mean(embeddings, axis=0)
+    else:
+        return np.zeros(embedding_dim)
 
 
 def get_one_hot(size, ind):
@@ -479,7 +488,28 @@ def train_log_linear_with_w2v():
     Here comes your code for training and evaluation of the log linear model with word embeddings
     representation.
     """
-    return
+    # Initialize DataManager with W2V_AVERAGE
+    data_manager = DataManager(data_type=W2V_AVERAGE, batch_size=64, embedding_dim=300)
+
+    # Initialize the model
+    model = LogLinear(embedding_dim=300)
+    model.to(get_available_device())
+
+    # Define optimizer and loss criterion
+    optimizer = optim.Adam(model.parameters(), lr=0.01, weight_decay=0.001)
+    criterion = nn.BCELoss()
+
+    print("Optimizer:", optimizer)
+    print("Criterion:", criterion)
+
+    # Train the model
+    train_model(
+        model=model,
+        data_manager=data_manager,
+        n_epochs=20,
+        lr=0.01,
+        weight_decay=0.001
+    )
 
 
 def train_lstm_with_w2v():
@@ -490,6 +520,6 @@ def train_lstm_with_w2v():
 
 
 if __name__ == '__main__':
-    train_log_linear_with_one_hot()
-    # train_log_linear_with_w2v()
+    # train_log_linear_with_one_hot()
+    train_log_linear_with_w2v()
     # train_lstm_with_w2v()
